@@ -38,8 +38,12 @@ from pathlib import Path
 import torch
 
 import paho.mqtt.client as paho
+from paho import mqtt
 from datetime import datetime
 import json
+
+from config import load_config
+config = load_config()
 
 FILE = Path(__file__).resolve()
 ROOT = FILE.parents[0]  # YOLOv5 root directory
@@ -55,6 +59,46 @@ from utils.general import (LOGGER, Profile, check_file, check_img_size, check_im
                            increment_path, non_max_suppression, print_args, scale_boxes, strip_optimizer, xyxy2xywh)
 from utils.torch_utils import select_device, smart_inference_mode
 
+
+mqtt_topic = "iot"
+
+# setting callbacks for different events to see if it works, print the message etc.
+def on_connect(client, userdata, flags, rc, properties=None):
+    """
+        Prints the result of the connection with a reasoncode to stdout ( used as callback for connect )
+
+        :param client: the client itself
+        :param userdata: userdata is set when initiating the client, here it is userdata=None
+        :param flags: these are response flags sent by the broker
+        :param rc: stands for reasonCode, which is a code for the connection result
+        :param properties: can be used in MQTTv5, but is optional
+    """
+    print("CONNACK received with code %s." % rc)
+
+# with this callback you can see if your publish was successful
+def on_publish(client, userdata, mid, properties=None):
+    """
+        Prints mid to stdout to reassure a successful publish ( used as callback for publish )
+
+        :param client: the client itself
+        :param userdata: userdata is set when initiating the client, here it is userdata=None
+        :param mid: variable returned from the corresponding publish() call, to allow outgoing messages to be tracked
+        :param properties: can be used in MQTTv5, but is optional
+    """
+    print("mid: " + str(mid))
+
+client = paho.Client(client_id="", userdata=None, protocol=paho.MQTTv5)
+client.on_connect = on_connect
+
+# enable TLS for secure connection
+client.tls_set(tls_version=mqtt.client.ssl.PROTOCOL_TLS)
+# set username and password
+client.username_pw_set(config['MQTT_USERNAME'], config['MQTT_PASSWORD'])
+# connect to HiveMQ Cloud on port 8883 (default for MQTT)
+client.connect(config['MQTT_HOST'], int(config['MQTT_PORT']))
+
+# setting callbacks, use separate functions like above for better visibility
+client.on_publish = on_publish
 
 @smart_inference_mode()
 def run(
@@ -185,7 +229,19 @@ def run(
                     confidence = float(conf)
                     confidence_str = f'{confidence:.2f}'
 
+                    # -------------------------------------------------
+                    payload = json.dumps({'image_name': p.name, 'prediction': label, 'confidence': confidence})
                     
+                    print("payload", payload)
+
+                    try:
+                        # a single publish, this can also be done in loops, etc.
+                        client.publish(mqtt_topic, payload, qos=1)
+                    except:
+                        pass
+                    finally:
+                        pass
+                    # -------------------------------------------------
 
                     if save_csv:
                         write_to_csv(p.name, label, confidence_str)
