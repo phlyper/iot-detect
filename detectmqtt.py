@@ -230,13 +230,17 @@ def run(
                     confidence_str = f'{confidence:.2f}'
 
                     # -------------------------------------------------
-                    payload = json.dumps({'image_name': p.name, 'prediction': label, 'confidence': confidence})
+                    dt = datetime.now()
+                    detected_at = datetime.timestamp(dt)
+                    # Creation de payload
+                    payload = json.dumps({'image_name': p.name, 'prediction': label, 'confidence': confidence, 'detected_at': detected_at})
                     
                     print("payload", payload)
 
+                    # envoyer le payload a mqtt broker
                     try:
                         # a single publish, this can also be done in loops, etc.
-                        client.publish(mqtt_topic, payload, qos=1)
+                        client.publish(mqtt_topic, payload=payload, qos=1)
                     except:
                         pass
                     finally:
