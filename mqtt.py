@@ -14,6 +14,7 @@ mysql_db = mysql.connector.connect(
   password=config['MYSQL_PASSWORD'],
   database=config['MYSQL_DBNAME'],
 )
+mysql_db.autocommit = True
 
 mqtt_topic = "iot"
 
@@ -28,6 +29,7 @@ def on_message(client, userdata, msg, properties=None):
     print(msg.topic+" "+str(msg.qos)+" "+str(msg.payload), type(msg), type(msg.payload))
 
     if mysql_db is not None:
+        mysql_cursor = None
         try:
 
             # Getting the current date and time
@@ -41,22 +43,32 @@ def on_message(client, userdata, msg, properties=None):
                 print("payload", payload, "payload_data", payload_data, "type payload", type(payload), "dt", dt)
 
                 if payload_data:
-                    sql = "INSERT INTO data (message, topic, object, accuracy, qos, detected_at, created_at, updated_at) VALUES (%s, %s, %s, %f, %d, %d, %d, %d)"
+                    sql = "INSERT INTO data_object (message, topic, object, accuracy, qos, detected_at, created_at, updated_at) VALUES (%s, %s, %s, %f, %d, %d, %d, %d)"
                     values = (payload, msg.topic, payload_data['prediction'], payload_data['confidence'], msg.qos, int(payload_data['detected_at']), int(datetime.timestamp(dt)), int(datetime.timestamp(dt)))
 
+                    payload_data['detected_at'] = None
+
+                    sql = "INSERT INTO data_object (message, topic, object, accuracy, qos, detected_at, created_at, updated_at) VALUES (%s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);"
+                    values = (payload, msg.topic, payload_data['prediction'], payload_data['confidence'], msg.qos, payload_data['detected_at'])
+
                     print("sql", sql, "values", values)
+
+                    # mysql_db.start_transaction()
 
                     mysql_cursor = mysql_db.cursor()
                     mysql_cursor.execute(sql, values)
 
                     print("1 record inserted, ID:", mysql_cursor.lastrowid) 
 
-                    mysql_db.commit()
+                    # mysql_db.commit()
 
+        except mysql.connector.Error as e:
+            print(f"Error mysql {e.errno} {e}")
         except Exception as e:
-            print(f"Error mysql {e}")
+            print(f"Exception mysql {e}")
         finally:
-            mysql_cursor.close()
+            if mysql_cursor:
+                mysql_cursor.close()
 
 
 client = paho.Client(client_id="", userdata=None, protocol=paho.MQTTv5)

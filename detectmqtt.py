@@ -230,8 +230,9 @@ def run(
                     confidence_str = f'{confidence:.2f}'
 
                     # -------------------------------------------------
-                    dt = datetime.now()
-                    detected_at = datetime.timestamp(dt)
+                    now = datetime.now()
+                    detected_at = now.strftime("%Y-%m-%d %H:%M:%S")
+                    detected_at = "%d" % (datetime.timestamp(now))
                     # Creation de payload
                     payload = json.dumps({'image_name': p.name, 'prediction': label, 'confidence': confidence, 'detected_at': detected_at})
                     
