@@ -43,10 +43,14 @@ def on_message(client, userdata, msg, properties=None):
                 print("payload", payload, "payload_data", payload_data, "type payload", type(payload), "dt", dt)
 
                 if payload_data:
+                    if isinstance(payload_data['detected_at'], str):
+                        payload_data['detected_at'] = int(payload_data['detected_at'])
+
                     sql = "INSERT INTO data_object (message, topic, object, accuracy, qos, detected_at, created_at, updated_at) VALUES (%s, %s, %s, %f, %d, %d, %d, %d)"
                     values = (payload, msg.topic, payload_data['prediction'], payload_data['confidence'], msg.qos, int(payload_data['detected_at']), int(datetime.timestamp(dt)), int(datetime.timestamp(dt)))
 
-                    payload_data['detected_at'] = None
+                    # payload_data['detected_at'] = None
+                    payload_data['detected_at'] = datetime.fromtimestamp(payload_data['detected_at']).strftime("%Y-%m-%d %H:%M:%S")
 
                     sql = "INSERT INTO data_object (message, topic, object, accuracy, qos, detected_at, created_at, updated_at) VALUES (%s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);"
                     values = (payload, msg.topic, payload_data['prediction'], payload_data['confidence'], msg.qos, payload_data['detected_at'])

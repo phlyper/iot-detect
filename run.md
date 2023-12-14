@@ -18,7 +18,7 @@ python detectmqtt.py --weights yolov5s.pt --source 0  --conf-thres=0.72
 
 
 
-
+python mqtt.py
 
 
 
