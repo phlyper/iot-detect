@@ -234,7 +234,7 @@ def run(
                     detected_at = now.strftime("%Y-%m-%d %H:%M:%S")
                     detected_at = "%d" % (datetime.timestamp(now))
                     # Creation de payload
-                    payload = json.dumps({'image_name': p.name, 'prediction': label, 'confidence': confidence, 'detected_at': detected_at})
+                    payload = json.dumps({'image_name': p.name, 'image_path': os.path.realpath(save_path), 'prediction': label, 'confidence': confidence, 'detected_at': detected_at})
                     
                     print("payload", payload)
 
